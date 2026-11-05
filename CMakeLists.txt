@@ -1,15 +1,12 @@
-#include "task_scheduler.hpp"
+cmake_minimum_required(VERSION 3.16)
+project(task_scheduler LANGUAGES CXX)
 
-#include <iostream>
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS OFF)
 
-int main() {
-    scheduler::TaskScheduler scheduler;
+find_package(Threads REQUIRED)
 
-    const std::size_t taskCount = 7500;
-    scheduler.enqueueBatch(taskCount);
-    scheduler.waitUntilComplete();
-
-    std::cout << "Completed " << scheduler.completedTasks() << " tasks using "
-              << scheduler::TaskScheduler::kNumWorkers << " worker threads.\n";
-    return 0;
-}
+add_executable(task_scheduler src/main.cpp)
+target_include_directories(task_scheduler PRIVATE ${CMAKE_SOURCE_DIR}/include)
+target_link_libraries(task_scheduler PRIVATE Threads::Threads)
