@@ -1,17 +1,10 @@
 # Multithreaded Task Scheduler
 
-A Linux-friendly C++17 worker pool with dependency-aware task submission. Tasks can form a directed acyclic graph (DAG): independent tasks run in parallel, and each task becomes ready only after all of its prerequisites finish. This supports fork/join workloads without blocking worker threads while waiting on dependencies.
+A Linux-friendly C++17 task scheduler with dependency-aware submission, plus a command-line tool that recommends which of your tasks to complete first based on urgency.
 
-## Features
+## Prioritize your tasks
 
-- 7 worker threads and a thread-safe ready queue.
-- `submit(callable, dependencies)` returns a `TaskHandle` with `wait()` and `get()`.
-- Dependencies can be shared across multiple tasks; cross-scheduler and empty dependency handles are rejected.
-- Task exceptions are rethrown by the corresponding handle's `get()`. Dependents are still released after a failed task, so applications can decide how to handle failures.
-- `enqueue` and `enqueueBatch` remain available for the original delay-based example.
-- `waitUntilComplete()` waits until all submitted tasks, including dependency-blocked tasks, finish.
-
-## Build and run
+Build and run the program:
 
 ```bash
 cmake -S . -B build
@@ -19,9 +12,25 @@ cmake --build build
 ./build/task_scheduler
 ```
 
-The example builds a fork/join graph: one load task feeds two parallel tasks, which both feed a final publish task.
+Enter the number of tasks, then each task's name and urgency from **1** (least urgent) to **5** (most urgent). The program recommends the highest-urgency task and prints the full priority order. If tasks have the same urgency, their original input order is preserved.
 
-## Example API
+Example:
+
+```text
+How many tasks do you want to prioritize? 3
+Task 1 name: Finish report
+Urgency for "Finish report" (1-5, 5 = most urgent): 3
+Task 2 name: Submit application
+Urgency for "Submit application" (1-5, 5 = most urgent): 5
+Task 3 name: Buy groceries
+Urgency for "Buy groceries" (1-5, 5 = most urgent): 2
+
+Recommended task to complete first: Submit application (urgency 5/5)
+```
+
+## Scheduler API
+
+The `scheduler::TaskScheduler` library provides a fixed-size worker pool and dependency-aware task submission. Tasks can form a directed acyclic graph: independent tasks run in parallel, and each task becomes ready only after all of its dependencies finish.
 
 ```cpp
 scheduler::TaskScheduler pool;
@@ -32,4 +41,4 @@ auto merge = pool.submit([] { /* combine results */ }, {left, right});
 merge.get();
 ```
 
-Each task's callable runs once. A task's dependencies must be handles returned by the same scheduler; graph cycles cannot be introduced because dependencies may only refer to already-submitted tasks.
+`submit(callable, dependencies)` returns a `TaskHandle` with `wait()` and `get()`. Dependencies must be handles returned by the same scheduler. Task exceptions are rethrown by the corresponding handle's `get()`; dependents are still released after a failure. `enqueue`, `enqueueBatch`, `waitUntilComplete()`, and `completedTasks()` are also available.
